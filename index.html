@@ -5,29 +5,112 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Image Ranking</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f8f8f8; }
-    h1 { margin-bottom: 10px; }
-    input { margin-bottom: 20px; }
-    .pair { display: flex; gap: 20px; margin-bottom: 30px; }
-    .image-card { border: 2px solid #ccc; cursor: pointer; padding: 10px; background: white; }
-    .image-card:hover { border-color: #333; }
-    .image-card img { max-width: 300px; height: auto; display: block; }
-    .ranking { margin-top: 40px; }
-    .ranking-item { display: flex; align-items: center; margin-bottom: 10px; }
-    .ranking-item img { width: 60px; margin-right: 10px; }
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+    }
+
+    header {
+      padding: 20px;
+      background: #333;
+      color: white;
+      text-align: center;
+    }
+
+    .container {
+      display: flex;
+      padding: 20px;
+      gap: 40px;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .upload {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .comparison {
+      flex: 2;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .image-card {
+      background: white;
+      border: 2px solid #ccc;
+      cursor: pointer;
+      padding: 10px;
+      transition: border 0.2s ease;
+    }
+
+    .image-card:hover {
+      border-color: #000;
+    }
+
+    .image-card img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      max-height: 400px;
+    }
+
+    .ranking {
+      flex: 1;
+      background: white;
+      padding: 15px;
+      border: 1px solid #ddd;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .ranking-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .ranking-item img {
+      width: 50px;
+      margin-right: 10px;
+      border-radius: 4px;
+    }
+
+    input[type=file] {
+      margin: 20px auto;
+      display: block;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Image Ranking App</h1>
-  <input type="file" id="imageUpload" accept="image/*" multiple>
+  <header>
+    <h1>Image Ranking App</h1>
+  </header>
 
-  <div class="pair" id="pairContainer" style="display:none;">
-    <div class="image-card" id="leftCard" onclick="choose(0)"><img id="leftImage" /></div>
-    <div class="image-card" id="rightCard" onclick="choose(1)"><img id="rightImage" /></div>
+  <div class="upload">
+    <input type="file" id="imageUpload" accept="image/*" multiple>
   </div>
 
-  <div class="ranking" id="rankingContainer"></div>
+  <div class="container">
+    <div class="comparison" id="pairContainer" style="display:none;">
+      <div class="image-card" id="leftCard" onclick="choose(0)">
+        <img id="leftImage" />
+      </div>
+      <div class="image-card" id="rightCard" onclick="choose(1)">
+        <img id="rightImage" />
+      </div>
+    </div>
+
+    <div class="ranking" id="rankingContainer">
+      <h2>Ranking</h2>
+      <p>Upload images to begin.</p>
+    </div>
+  </div>
 
   <script>
     const imageUpload = document.getElementById('imageUpload');
@@ -75,7 +158,7 @@
 
     function updateRanking() {
       const sorted = [...images].sort((a, b) => scores[b] - scores[a]);
-      rankingContainer.innerHTML = `<h2>Current Ranking</h2>` + 
+      rankingContainer.innerHTML = `<h2>Ranking</h2>` +
         sorted.map((img, idx) => `
           <div class="ranking-item">
             <strong>#${idx + 1}</strong>
