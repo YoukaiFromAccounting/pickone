@@ -113,61 +113,111 @@
   </div>
 
   <script>
-    const imageUpload = document.getElementById('imageUpload');
-    const pairContainer = document.getElementById('pairContainer');
-    const leftImage = document.getElementById('leftImage');
-    const rightImage = document.getElementById('rightImage');
-    const rankingContainer = document.getElementById('rankingContainer');
+  const imageUpload = document.getElementById('imageUpload');
+  const pairContainer = document.getElementById('pairContainer');
+  const leftImage = document.getElementById('leftImage');
+  const rightImage = document.getElementById('rightImage');
+  const rankingContainer = document.getElementById('rankingContainer');
 
-    let images = [];
-    let scores = {};
-    let pair = [0, 1];
+  // 👇 Add this to show progress at the bottom
+  const progressBar = document.createElement('div');
+  progressBar.style.padding = '15px';
+  progressBar.style.textAlign = 'center';
+  progressBar.style.fontWeight = '600';
+  document.body.appendChild(progressBar);
 
-    imageUpload.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
-      images = files.map(file => URL.createObjectURL(file));
-      scores = Object.fromEntries(images.map(img => [img, 1000]));
-      pickPair();
-      pairContainer.style.display = 'flex';
-      updateRanking();
+  let images = [];
+  let scores = {};
+  let comparisons = new Set(); // store "a|b" strings
+  let pair = [0, 1];
+  let totalNeeded = 0;
+
+  imageUpload.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    images = files.map(file => URL.createObjectURL(file));
+    scores = Object.fromEntries(images.map(img => [img, 1000]));
+    comparisons.clear();
+    totalNeeded = Math.round(images.length * Math.log2(images.length));
+    pickPair();
+    pairContainer.style.display = 'flex';
+    updateRanking();
+    updateProgress();
+  });
+
+  function choose(winnerIndex) {
+    const [i, j] = pair;
+    const winner = images[winnerIndex === 0 ? i : j];
+    const loser = images[winnerIndex === 0 ? j : i];
+
+    // Elo update
+    const k = 32;
+    const r1 = 1 / (1 + Math.pow(10, (scores[loser] - scores[winner]) / 400));
+    scores[winner] += k * (1 - r1);
+    scores[loser] += k * (0 - (1 - r1));
+
+    // Record comparison
+    const pairKey = [i, j].sort().join('|');
+    comparisons.add(pairKey);
+
+    pickPair();
+    updateRanking();
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const done = comparisons.size;
+    const percent = Math.min(100, Math.round((done / totalNeeded) * 100));
+    progressBar.textContent = `Comparisons: ${done} / ${totalNeeded} (${percent}%)`;
+  }
+
+  function pickPair() {
+    if (images.length < 2) return;
+
+    // Prioritize items with fewer appearances
+    const appearanceCount = Object.fromEntries(images.map(img => [img, 0]));
+    for (const pairStr of comparisons) {
+      const [a, b] = pairStr.split('|').map(i => images[parseInt(i)]);
+      appearanceCount[a]++;
+      appearanceCount[b]++;
+    }
+
+    // Score each image by fewest comparisons + randomness
+    const sortedByNeed = [...images].sort((a, b) => {
+      return appearanceCount[a] - appearanceCount[b] || (Math.random() - 0.5);
     });
 
-    function choose(winnerIndex) {
-      const [i, j] = pair;
-      const winner = images[winnerIndex === 0 ? i : j];
-      const loser = images[winnerIndex === 0 ? j : i];
+    // Try to find a good partner for the most under-compared image
+    const a = images.indexOf(sortedByNeed[0]);
+    let b = a;
+    let attempts = 0;
+    const maxAttempts = 100;
 
-      const k = 32;
-      const r1 = 1 / (1 + Math.pow(10, (scores[loser] - scores[winner]) / 400));
-      scores[winner] += k * (1 - r1);
-      scores[loser] += k * (0 - (1 - r1));
-
-      pickPair();
-      updateRanking();
+    while ((b === a || comparisons.has([a, b].sort().join('|'))) && attempts < maxAttempts) {
+      const candidates = images
+        .map((img, i) => ({ i, diff: Math.abs(scores[images[a]] - scores[img]) }))
+        .filter(obj => obj.i !== a)
+        .sort((x, y) => x.diff - y.diff + (Math.random() - 0.5));
+      b = candidates[0].i;
+      attempts++;
     }
 
-    function pickPair() {
-      if (images.length < 2) return;
-      let a = Math.floor(Math.random() * images.length);
-      let b = Math.floor(Math.random() * images.length);
-      while (b === a) b = Math.floor(Math.random() * images.length);
-      pair = [a, b];
-      leftImage.src = images[a];
-      rightImage.src = images[b];
-    }
+    pair = [a, b];
+    leftImage.src = images[a];
+    rightImage.src = images[b];
+  }
 
-    function updateRanking() {
-      const sorted = [...images].sort((a, b) => scores[b] - scores[a]);
-      rankingContainer.innerHTML = `<h2>Ranking</h2>` +
-        sorted.map((img, idx) => `
-          <div class="ranking-item">
-            <strong>#${idx + 1}</strong>
-            <img src="${img}" />
-            <span>${Math.round(scores[img])}</span>
-          </div>
-        `).join('');
-    }
-  </script>
+  function updateRanking() {
+    const sorted = [...images].sort((a, b) => scores[b] - scores[a]);
+    rankingContainer.innerHTML = `<h2>Ranking</h2>` +
+      sorted.map((img, idx) => `
+        <div class="ranking-item">
+          <strong>#${idx + 1}</strong>
+          <img src="${img}" />
+          <span>${Math.round(scores[img])}</span>
+        </div>
+      `).join('');
+  }
+</script>
 
 </body>
 </html>
