@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Image Ranking</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f8f8f8; }
+    h1 { margin-bottom: 10px; }
+    input { margin-bottom: 20px; }
+    .pair { display: flex; gap: 20px; margin-bottom: 30px; }
+    .image-card { border: 2px solid #ccc; cursor: pointer; padding: 10px; background: white; }
+    .image-card:hover { border-color: #333; }
+    .image-card img { max-width: 300px; height: auto; display: block; }
+    .ranking { margin-top: 40px; }
+    .ranking-item { display: flex; align-items: center; margin-bottom: 10px; }
+    .ranking-item img { width: 60px; margin-right: 10px; }
+  </style>
+</head>
+<body>
+
+  <h1>Image Ranking App</h1>
+  <input type="file" id="imageUpload" accept="image/*" multiple>
+
+  <div class="pair" id="pairContainer" style="display:none;">
+    <div class="image-card" id="leftCard" onclick="choose(0)"><img id="leftImage" /></div>
+    <div class="image-card" id="rightCard" onclick="choose(1)"><img id="rightImage" /></div>
+  </div>
+
+  <div class="ranking" id="rankingContainer"></div>
+
+  <script>
+    const imageUpload = document.getElementById('imageUpload');
+    const pairContainer = document.getElementById('pairContainer');
+    const leftImage = document.getElementById('leftImage');
+    const rightImage = document.getElementById('rightImage');
+    const rankingContainer = document.getElementById('rankingContainer');
+
+    let images = [];
+    let scores = {};
+    let pair = [0, 1];
+
+    imageUpload.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      images = files.map(file => URL.createObjectURL(file));
+      scores = Object.fromEntries(images.map(img => [img, 1000]));
+      pickPair();
+      pairContainer.style.display = 'flex';
+      updateRanking();
+    });
+
+    function choose(winnerIndex) {
+      const [i, j] = pair;
+      const winner = images[winnerIndex === 0 ? i : j];
+      const loser = images[winnerIndex === 0 ? j : i];
+
+      const k = 32;
+      const r1 = 1 / (1 + Math.pow(10, (scores[loser] - scores[winner]) / 400));
+      scores[winner] += k * (1 - r1);
+      scores[loser] += k * (0 - (1 - r1));
+
+      pickPair();
+      updateRanking();
+    }
+
+    function pickPair() {
+      if (images.length < 2) return;
+      let a = Math.floor(Math.random() * images.length);
+      let b = Math.floor(Math.random() * images.length);
+      while (b === a) b = Math.floor(Math.random() * images.length);
+      pair = [a, b];
+      leftImage.src = images[a];
+      rightImage.src = images[b];
+    }
+
+    function updateRanking() {
+      const sorted = [...images].sort((a, b) => scores[b] - scores[a]);
+      rankingContainer.innerHTML = `<h2>Current Ranking</h2>` + 
+        sorted.map((img, idx) => `
+          <div class="ranking-item">
+            <strong>#${idx + 1}</strong>
+            <img src="${img}" />
+            <span>${Math.round(scores[img])}</span>
+          </div>
+        `).join('');
+    }
+  </script>
+
+</body>
+</html>
