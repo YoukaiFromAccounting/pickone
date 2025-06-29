@@ -1,252 +1,147 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Image Ranking App</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    * {
-      box-sizing: border-box;
+import { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+export default function ImageRanker() {
+  const [images, setImages] = useState([]);
+  const [pair, setPair] = useState([0, 1]);
+  const [scores, setScores] = useState({});
+  const [comparisons, setComparisons] = useState(new Set());
+  const [totalNeeded, setTotalNeeded] = useState(0);
+
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `
+      .floating-image {
+        position: absolute;
+        animation: bobbing 4s ease-in-out infinite;
+        opacity: 0.2;
+        transition: transform 0.5s, opacity 0.5s;
+      }
+      .comparison-image {
+        position: static;
+        opacity: 1 !important;
+        animation: none !important;
+        transform: scale(1.05);
+      }
+      @keyframes bobbing {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  function handleUpload(event) {
+    const files = Array.from(event.target.files);
+    const newImages = files.map(file => URL.createObjectURL(file));
+    setImages(newImages);
+    setPair([0, 1]);
+    setScores(Object.fromEntries(newImages.map(img => [img, 1000])));
+    setComparisons(new Set());
+    setTotalNeeded(Math.round(newImages.length * Math.log2(newImages.length)));
+  }
+
+  function choose(winnerIdx) {
+    const [i, j] = pair;
+    const winner = images[winnerIdx];
+    const loser = images[1 - winnerIdx];
+    const s = { ...scores };
+
+    const k = 32;
+    const r1 = 1 / (1 + Math.pow(10, (s[loser] - s[winner]) / 400));
+    s[winner] += k * (1 - r1);
+    s[loser] += k * (0 - (1 - r1));
+
+    const newComparisons = new Set(comparisons);
+    newComparisons.add([i, j].sort().join('|'));
+
+    setScores(s);
+    setComparisons(newComparisons);
+    pickPair(newImages => setPair(newImages));
+  }
+
+  function pickPair(setNextPair) {
+    if (images.length < 2) return;
+
+    const appearanceCount = Object.fromEntries(images.map(img => [img, 0]));
+    for (const key of comparisons) {
+      const [a, b] = key.split('|').map(i => images[parseInt(i)]);
+      appearanceCount[a]++;
+      appearanceCount[b]++;
     }
 
-    body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background: #f4f6f9;
-      color: #333;
+    const sortedByNeed = [...images].sort((a, b) => appearanceCount[a] - appearanceCount[b]);
+    const a = images.indexOf(sortedByNeed[0]);
+    let b = a;
+    let attempts = 0;
+    while ((b === a || comparisons.has([a, b].sort().join('|'))) && attempts < 100) {
+      const candidates = images
+        .map((img, i) => ({ i, diff: Math.abs(scores[images[a]] - scores[img]) }))
+        .filter(obj => obj.i !== a)
+        .sort((x, y) => x.diff - y.diff);
+      b = candidates[0]?.i ?? a;
+      attempts++;
     }
 
-    header {
-      padding: 20px;
-      background: linear-gradient(to right, #182848, #4b6cb7);
-      color: white;
-      text-align: center;
-      font-size: 1.5rem;
-      font-weight: 600;
-    }
+    setNextPair([a, b]);
+  }
 
-    .upload {
-      text-align: center;
-      padding: 20px;
-    }
+  return (
+    <div className="p-4 relative min-h-screen overflow-hidden">
+      <h1 className="text-2xl mb-4 text-center">Image Ranking App</h1>
 
-    input[type=file] {
-      padding: 10px;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+      <Input type="file" accept="image/*" multiple onChange={handleUpload} className="mb-4 mx-auto block" />
 
-    .container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 40px;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 20px;
-    }
+      {/* Floating background images */}
+      {images.map((img, idx) => {
+        const isInPair = idx === pair[0] || idx === pair[1];
+        return (
+          <img
+            key={img}
+            src={img}
+            className={`floating-image ${isInPair ? 'comparison-image' : ''}`}
+            style={{
+              top: `${(idx * 60) % window.innerHeight}px`,
+              left: `${(idx * 90) % window.innerWidth}px`,
+              zIndex: isInPair ? 10 : 1
+            }}
+          />
+        );
+      })}
 
-    .comparison {
-      display: flex;
-      gap: 30px;
-      justify-content: center;
-    }
+      {images.length >= 2 && (
+        <div className="grid grid-cols-2 gap-4 mt-4 relative z-20">
+          <Card onClick={() => choose(0)} className="cursor-pointer">
+            <CardContent><img src={images[pair[0]]} className="w-full h-auto" /></CardContent>
+          </Card>
+          <Card onClick={() => choose(1)} className="cursor-pointer">
+            <CardContent><img src={images[pair[1]]} className="w-full h-auto" /></CardContent>
+          </Card>
+        </div>
+      )}
 
-    .image-card {
-      background: white;
-      border: 2px solid transparent;
-      border-radius: 12px;
-      padding: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
-      cursor: pointer;
-    }
+      {images.length > 0 && (
+        <div className="mt-6 relative z-20">
+          <h2 className="text-xl mb-2">Current Rankings</h2>
+          {images
+            .slice()
+            .sort((a, b) => scores[b] - scores[a])
+            .map((img, idx) => (
+              <div key={img} className="mb-2 flex items-center">
+                <span className="mr-2 font-bold">#{idx + 1}</span>
+                <img src={img} className="w-20 h-auto mr-2" />
+                <span>{Math.round(scores[img])}</span>
+              </div>
+            ))}
+        </div>
+      )}
 
-    .image-card:hover {
-      transform: scale(1.03);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      border: 2px solid #4b6cb7;
-    }
-
-    .image-card img {
-      max-width: 300px;
-      max-height: 400px;
-      width: 100%;
-      display: block;
-      border-radius: 6px;
-    }
-
-    .ranking {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-      max-height: 90vh;
-      overflow-y: auto;
-      min-width: 220px;
-    }
-
-    .ranking h2 {
-      margin-top: 0;
-      font-size: 1.2rem;
-      margin-bottom: 10px;
-    }
-
-    .ranking-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-      padding: 6px 0;
-      border-bottom: 1px solid #eee;
-      animation: fadeIn 0.3s ease-in;
-    }
-
-    .ranking-item img {
-      width: 48px;
-      height: 48px;
-      border-radius: 6px;
-      object-fit: cover;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .progress-bar {
-      padding: 16px;
-      text-align: center;
-      font-weight: 600;
-      background: #eef1f4;
-      border-top: 1px solid #ccc;
-    }
-  </style>
-</head>
-<body>
-
-  <header>
-    Image Ranking App
-  </header>
-
-  <div class="upload">
-    <input type="file" id="imageUpload" accept="image/*" multiple>
-  </div>
-
-  <div class="container">
-    <div class="comparison" id="pairContainer" style="display:none;">
-      <div class="image-card" id="leftCard" onclick="choose(0)">
-        <img id="leftImage" />
-      </div>
-      <div class="image-card" id="rightCard" onclick="choose(1)">
-        <img id="rightImage" />
+      {/* Progress bar */}
+      <div className="mt-6 text-center text-lg relative z-20">
+        Comparisons: {comparisons.size} / {totalNeeded} ({Math.round((comparisons.size / totalNeeded) * 100)}%)
       </div>
     </div>
-
-    <div class="ranking" id="rankingContainer">
-      <h2>Ranking</h2>
-      <p>Upload images to begin.</p>
-    </div>
-  </div>
-
-  <div class="progress-bar" id="progressBar">
-    Comparisons: 0 / 0 (0%)
-  </div>
-
-  <script>
-    const imageUpload = document.getElementById('imageUpload');
-    const pairContainer = document.getElementById('pairContainer');
-    const leftImage = document.getElementById('leftImage');
-    const rightImage = document.getElementById('rightImage');
-    const rankingContainer = document.getElementById('rankingContainer');
-    const progressBar = document.getElementById('progressBar');
-
-    let images = [];
-    let scores = {};
-    let comparisons = new Set();
-    let pair = [0, 1];
-    let totalNeeded = 0;
-
-    imageUpload.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
-      images = files.map(file => URL.createObjectURL(file));
-      scores = Object.fromEntries(images.map(img => [img, 1000]));
-      comparisons.clear();
-      totalNeeded = Math.round(images.length * Math.log2(images.length));
-      pickPair();
-      pairContainer.style.display = 'flex';
-      updateRanking();
-      updateProgress();
-    });
-
-    function choose(winnerIndex) {
-      const [i, j] = pair;
-      const winner = images[winnerIndex === 0 ? i : j];
-      const loser = images[winnerIndex === 0 ? j : i];
-
-      const k = 32;
-      const r1 = 1 / (1 + Math.pow(10, (scores[loser] - scores[winner]) / 400));
-      scores[winner] += k * (1 - r1);
-      scores[loser] += k * (0 - (1 - r1));
-
-      const pairKey = [i, j].sort().join('|');
-      comparisons.add(pairKey);
-
-      pickPair();
-      updateRanking();
-      updateProgress();
-    }
-
-    function updateProgress() {
-      const done = comparisons.size;
-      const percent = Math.min(100, Math.round((done / totalNeeded) * 100));
-      progressBar.textContent = `Comparisons: ${done} / ${totalNeeded} (${percent}%)`;
-    }
-
-    function pickPair() {
-      if (images.length < 2) return;
-
-      const appearanceCount = Object.fromEntries(images.map(img => [img, 0]));
-      for (const pairStr of comparisons) {
-        const [a, b] = pairStr.split('|').map(i => images[parseInt(i)]);
-        appearanceCount[a]++;
-        appearanceCount[b]++;
-      }
-
-      const sortedByNeed = [...images].sort((a, b) => {
-        return appearanceCount[a] - appearanceCount[b] || (Math.random() - 0.5);
-      });
-
-      const a = images.indexOf(sortedByNeed[0]);
-      let b = a;
-      let attempts = 0;
-
-      while ((b === a || comparisons.has([a, b].sort().join('|'))) && attempts < 100) {
-        const candidates = images
-          .map((img, i) => ({ i, diff: Math.abs(scores[images[a]] - scores[img]) }))
-          .filter(obj => obj.i !== a)
-          .sort((x, y) => x.diff - y.diff + (Math.random() - 0.5));
-        b = candidates[0]?.i ?? a;
-        attempts++;
-      }
-
-      pair = [a, b];
-      leftImage.src = images[a];
-      rightImage.src = images[b];
-    }
-
-    function updateRanking() {
-      const sorted = [...images].sort((a, b) => scores[b] - scores[a]);
-      rankingContainer.innerHTML = `<h2>Ranking</h2>` +
-        sorted.map((img, idx) => `
-          <div class="ranking-item">
-            <strong>#${idx + 1}</strong>
-            <img src="${img}" />
-            <span>${Math.round(scores[img])}</span>
-          </div>
-        `).join('');
-    }
-  </script>
-</body>
-</html>
+  );
+}
