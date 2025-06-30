@@ -463,19 +463,25 @@
         let floatingObjects = [];
         let isTiebreaker = false;
 
-        // Calculate more accurate total comparisons needed
+        // Calculate comprehensive comparisons needed for fairest ranking
         function calculateTotalComparisons(n) {
             if (n < 2) return 0;
-            // For Swiss system: ensure each item gets enough comparisons for reliable ranking
-            // Minimum: n-1 (to connect all items)
-            // Better: n*log2(n) for good separation
-            // Conservative: n*(n-1)/3 for very reliable rankings
-            const minComparisons = n - 1;
-            const goodComparisons = Math.ceil(n * Math.log2(n));
-            const reliableComparisons = Math.ceil(n * (n - 1) / 3);
+            if (n <= 4) return Math.ceil(n * (n - 1) / 2); // Small sets: do most pairs
             
-            // Use a formula that scales reasonably: more items need proportionally more comparisons
-            return Math.max(minComparisons, Math.min(reliableComparisons, goodComparisons * 1.5));
+            // For larger sets, use Swiss principles but ensure comprehensive coverage:
+            // Each item should face multiple opponents across different score brackets
+            // Target: each item gets 60-80% of possible matchups for very fair rankings
+            
+            const totalPossiblePairs = n * (n - 1) / 2;
+            const coverageRatio = Math.max(0.6, Math.min(0.8, 1 - (n - 5) * 0.05)); // 60-80% coverage, decreasing slightly for very large sets
+            
+            const targetComparisons = Math.ceil(totalPossiblePairs * coverageRatio);
+            
+            // Ensure minimum rounds for Swiss system stability
+            const minRounds = Math.ceil(Math.log2(n)) + 2; // Extra rounds for better separation
+            const minComparisons = n * minRounds / 2; // Each round pairs everyone
+            
+            return Math.max(targetComparisons, minComparisons);
         }
 
         // Drag and drop functionality
