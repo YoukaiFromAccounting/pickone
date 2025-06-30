@@ -257,6 +257,34 @@ body {
     50% { transform: scale(1.02); }
 }
 
+@keyframes flameRise {
+    0% {
+        bottom: 0;
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        bottom: 120%; /* moves flame above the card */
+        opacity: 0;
+        transform: scale(1.2);
+    }
+}
+
+.flame {
+    position: absolute;
+    background: linear-gradient(45deg, #ff4500, #ff6b35, #ffaa00);
+    width: 8px;
+    height: 20px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation: flicker 0.8s infinite alternate,  
+               flameRise 1.2s ease-out infinite;
+}
+
+/* make sure the card container lets the flames escape */
+.choice-card {
+    overflow: visible; /* instead of hidden */
+}
+
 /* completion */
 .completion-message {
     background: #f0fdf4;
