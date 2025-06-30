@@ -24,6 +24,41 @@ function calculateTotalComparisons(n) {
 const dragZone = document.getElementById('drag-zone');
 const fileInput = document.getElementById('file-input');
 
+const flameConfig = {
+  particles: {
+    number: { value: 30, density: { enable: false } },
+    color: { value: ["#ff4500", "#ffae00", "#ffd600"] },
+    shape: { type: "circle" },
+    opacity: {
+      value: 1,
+      animation: {
+        enable: true,
+        speed: 3,
+        minimumValue: 0,
+        startValue: "max",
+        destroy: "min"
+      }
+    },
+    size: {
+      value: { min: 2, max: 5 },
+      animation: {
+        enable: true,
+        speed: 5,
+        minimumValue: 0.5,
+        startValue: "max",
+        destroy: "min"
+      }
+    },
+    move: {
+      enable: true,
+      direction: "top",
+      speed: { min: 2, max: 4 },
+      outModes: { default: "destroy" }
+    }
+  },
+  detectRetina: true
+}
+
 dragZone.addEventListener('dragover', e => {
     e.preventDefault();
     dragZone.classList.add('drag-over');
@@ -220,23 +255,32 @@ function pickPair() {
 }
 
 function showNextPair() {
-    const grid = document.getElementById('comparison-grid');
-    const alert = document.getElementById('tiebreaker-alert');
-    alert.classList.toggle('hidden', !isTiebreaker);
-    grid.classList.toggle('tiebreaker-mode', isTiebreaker);
-    grid.innerHTML = '';
-    [0,1].forEach(pos => {
-        const card = document.createElement('div');
-        card.className = 'choice-card';
-        card.onclick = () => choose(pos);
-        card.innerHTML = `
-            <img src="${images[pair[pos]]}" alt="${imageNames[images[pair[pos]]]}" class="choice-image">
-            <p class="choice-name">${imageNames[images[pair[pos]]] || ''}</p>
-        `;
-        createFlameEffect(card);
-        grid.appendChild(card);
-    });
-    updateFloatingImages();
+  const grid = document.getElementById('comparison-grid');
+  grid.innerHTML = '';
+
+  [0, 1].forEach(pos => {
+    // build the card
+    const card = document.createElement('div');
+    card.className = 'choice-card';
+    card.onclick = () => choose(pos);
+    card.innerHTML = `
+      <img src="${images[pair[pos]]}" alt="${imageNames[images[pair[pos]]]}" class="choice-image">
+      <p class="choice-name">${imageNames[images[pair[pos]]]}</p>
+    `;
+
+    // create and append the flame container
+    const flameDiv = document.createElement('div');
+    flameDiv.className = 'flame-container';
+    flameDiv.id = `flame-${pair[pos]}`;
+    card.appendChild(flameDiv);
+
+    // ── right here, load your particles
+    tsParticles.load(flameDiv.id, flameConfig);
+
+    grid.appendChild(card);
+  });
+
+  updateFloatingImages();
 }
 
 function updateDisplay() {
