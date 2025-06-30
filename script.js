@@ -233,7 +233,7 @@ function showNextPair() {
             <img src="${images[pair[pos]]}" alt="${imageNames[images[pair[pos]]]}" class="choice-image">
             <p class="choice-name">${imageNames[images[pair[pos]]] || ''}</p>
         `;
-        if (isTiebreaker) createFlameEffect(card);
+        createFlameEffect(card);
         grid.appendChild(card);
     });
     updateFloatingImages();
