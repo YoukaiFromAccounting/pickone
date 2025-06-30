@@ -159,7 +159,7 @@ body {
     transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .choice-card:hover {
@@ -204,8 +204,8 @@ body {
     right: 0;
     bottom: 0;
     pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    opacity: 1; /* always visible */
+    transition: none;
 }
 
 .tiebreaker-mode .choice-card:hover .tiebreaker-flames {
