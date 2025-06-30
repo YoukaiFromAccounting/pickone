@@ -21,11 +21,11 @@
         .floating-image {
             position: absolute;
             animation: bobbing 4s ease-in-out infinite;
-            opacity: 0.1;
+            opacity: 0.15;
             transition: all 0.5s ease;
-            border-radius: 8px;
-            max-width: 120px;
-            max-height: 120px;
+            border-radius: 12px;
+            max-width: 200px;
+            max-height: 200px;
             object-fit: cover;
             pointer-events: none;
             z-index: 1;
@@ -432,7 +432,7 @@
             scores = {};
             images.forEach(img => scores[img] = 1000);
             comparisons = new Set();
-            totalNeeded = Math.round(images.length * Math.log2(images.length) * 1.5);
+            totalNeeded = Math.round((images.length * (images.length - 1)) / 2 * 0.6); // About 60% of all possible pairs
             isComplete = false;
 
             document.getElementById('upload-section').classList.add('hidden');
@@ -451,8 +451,8 @@
                 const floatingImg = document.createElement('img');
                 floatingImg.src = img;
                 floatingImg.className = 'floating-image';
-                floatingImg.style.top = `${10 + (idx * 120) % (window.innerHeight - 200)}px`;
-                floatingImg.style.left = `${10 + (idx * 150) % (window.innerWidth - 200)}px`;
+                floatingImg.style.top = `${10 + (idx * 180) % (window.innerHeight - 250)}px`;
+                floatingImg.style.left = `${10 + (idx * 220) % (window.innerWidth - 250)}px`;
                 floatingImg.style.animationDelay = `${idx * 0.5}s`;
                 document.body.appendChild(floatingImg);
             });
@@ -506,26 +506,41 @@
                 appearanceCount[b]++;
             }
 
-            // Find the image that has appeared least
-            const sortedByAppearance = Object.entries(appearanceCount)
-                .sort(([,a], [,b]) => a - b)
-                .map(([idx]) => parseInt(idx));
+            // Find unused pairs first
+            const unusedPairs = [];
+            for (let i = 0; i < images.length; i++) {
+                for (let j = i + 1; j < images.length; j++) {
+                    const pairKey = [i, j].sort().join('|');
+                    if (!comparisons.has(pairKey)) {
+                        unusedPairs.push([i, j]);
+                    }
+                }
+            }
 
-            const a = sortedByAppearance[0];
-            
-            // Find best opponent based on ELO rating similarity
-            const candidates = images
-                .map((img, i) => ({ 
-                    i, 
-                    diff: Math.abs(scores[images[a]] - scores[img]),
-                    appeared: appearanceCount[i]
-                }))
-                .filter(obj => obj.i !== a && !comparisons.has([a, obj.i].sort().join('|')))
-                .sort((x, y) => x.appeared - y.appeared || x.diff - y.diff);
+            if (unusedPairs.length === 0) {
+                // All pairs compared, we're done
+                isComplete = true;
+                document.getElementById('comparison-section').classList.add('hidden');
+                document.getElementById('completion-message').classList.remove('hidden');
+                updateDisplay();
+                return;
+            }
 
-            const b = candidates.length > 0 ? candidates[0].i : (a + 1) % images.length;
-            pair = [a, b];
-            
+            // Sort unused pairs by appearance count (prioritize less-seen images)
+            unusedPairs.sort((pairA, pairB) => {
+                const appearanceA = appearanceCount[pairA[0]] + appearanceCount[pairA[1]];
+                const appearanceB = appearanceCount[pairB[0]] + appearanceCount[pairB[1]];
+                if (appearanceA !== appearanceB) {
+                    return appearanceA - appearanceB;
+                }
+                // If appearance counts are equal, sort by ELO similarity
+                const scoreDiffA = Math.abs(scores[images[pairA[0]]] - scores[images[pairA[1]]]);
+                const scoreDiffB = Math.abs(scores[images[pairB[0]]] - scores[images[pairB[1]]]);
+                return scoreDiffA - scoreDiffB;
+            });
+
+            // Pick the best unused pair
+            pair = unusedPairs[0];
             showNextPair();
         }
 
