@@ -1,147 +1,623 @@
-import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Ranking Tournament</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-export default function ImageRanker() {
-  const [images, setImages] = useState([]);
-  const [pair, setPair] = useState([0, 1]);
-  const [scores, setScores] = useState({});
-  const [comparisons, setComparisons] = useState(new Set());
-  const [totalNeeded, setTotalNeeded] = useState(0);
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = `
-      .floating-image {
-        position: absolute;
-        animation: bobbing 4s ease-in-out infinite;
-        opacity: 0.2;
-        transition: transform 0.5s, opacity 0.5s;
-      }
-      .comparison-image {
-        position: static;
-        opacity: 1 !important;
-        animation: none !important;
-        transform: scale(1.05);
-      }
-      @keyframes bobbing {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-      }
-    `;
-    document.head.appendChild(style);
-  }, []);
+        .floating-image {
+            position: absolute;
+            animation: bobbing 4s ease-in-out infinite;
+            opacity: 0.1;
+            transition: all 0.5s ease;
+            border-radius: 8px;
+            max-width: 120px;
+            max-height: 120px;
+            object-fit: cover;
+            pointer-events: none;
+            z-index: 1;
+        }
 
-  function handleUpload(event) {
-    const files = Array.from(event.target.files);
-    const newImages = files.map(file => URL.createObjectURL(file));
-    setImages(newImages);
-    setPair([0, 1]);
-    setScores(Object.fromEntries(newImages.map(img => [img, 1000])));
-    setComparisons(new Set());
-    setTotalNeeded(Math.round(newImages.length * Math.log2(newImages.length)));
-  }
+        .comparison-image {
+            opacity: 0.3 !important;
+            transform: scale(1.1);
+            z-index: 5;
+        }
 
-  function choose(winnerIdx) {
-    const [i, j] = pair;
-    const winner = images[winnerIdx];
-    const loser = images[1 - winnerIdx];
-    const s = { ...scores };
+        @keyframes bobbing {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-8px) rotate(1deg); }
+            75% { transform: translateY(-4px) rotate(-1deg); }
+        }
 
-    const k = 32;
-    const r1 = 1 / (1 + Math.pow(10, (s[loser] - s[winner]) / 400));
-    s[winner] += k * (1 - r1);
-    s[loser] += k * (0 - (1 - r1));
+        .container {
+            position: relative;
+            z-index: 10;
+            padding: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-    const newComparisons = new Set(comparisons);
-    newComparisons.add([i, j].sort().join('|'));
+        .header {
+            text-center;
+            margin-bottom: 32px;
+        }
 
-    setScores(s);
-    setComparisons(newComparisons);
-    pickPair(newImages => setPair(newImages));
-  }
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
 
-  function pickPair(setNextPair) {
-    if (images.length < 2) return;
+        .trophy {
+            font-size: 2.5rem;
+        }
 
-    const appearanceCount = Object.fromEntries(images.map(img => [img, 0]));
-    for (const key of comparisons) {
-      const [a, b] = key.split('|').map(i => images[parseInt(i)]);
-      appearanceCount[a]++;
-      appearanceCount[b]++;
-    }
+        .subtitle {
+            color: #6b7280;
+            font-size: 1.125rem;
+        }
 
-    const sortedByNeed = [...images].sort((a, b) => appearanceCount[a] - appearanceCount[b]);
-    const a = images.indexOf(sortedByNeed[0]);
-    let b = a;
-    let attempts = 0;
-    while ((b === a || comparisons.has([a, b].sort().join('|'))) && attempts < 100) {
-      const candidates = images
-        .map((img, i) => ({ i, diff: Math.abs(scores[images[a]] - scores[img]) }))
-        .filter(obj => obj.i !== a)
-        .sort((x, y) => x.diff - y.diff);
-      b = candidates[0]?.i ?? a;
-      attempts++;
-    }
+        .drag-zone {
+            border: 3px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 48px;
+            text-align: center;
+            margin-bottom: 24px;
+            transition: all 0.3s ease;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
 
-    setNextPair([a, b]);
-  }
+        .drag-zone.drag-over {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
 
-  return (
-    <div className="p-4 relative min-h-screen overflow-hidden">
-      <h1 className="text-2xl mb-4 text-center">Image Ranking App</h1>
+        .upload-icon {
+            font-size: 3rem;
+            color: #9ca3af;
+            margin-bottom: 16px;
+        }
 
-      <Input type="file" accept="image/*" multiple onChange={handleUpload} className="mb-4 mx-auto block" />
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
 
-      {/* Floating background images */}
-      {images.map((img, idx) => {
-        const isInPair = idx === pair[0] || idx === pair[1];
-        return (
-          <img
-            key={img}
-            src={img}
-            className={`floating-image ${isInPair ? 'comparison-image' : ''}`}
-            style={{
-              top: `${(idx * 60) % window.innerHeight}px`,
-              left: `${(idx * 90) % window.innerWidth}px`,
-              zIndex: isInPair ? 10 : 1
-            }}
-          />
-        );
-      })}
+        .progress-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
 
-      {images.length >= 2 && (
-        <div className="grid grid-cols-2 gap-4 mt-4 relative z-20">
-          <Card onClick={() => choose(0)} className="cursor-pointer">
-            <CardContent><img src={images[pair[0]]} className="w-full h-auto" /></CardContent>
-          </Card>
-          <Card onClick={() => choose(1)} className="cursor-pointer">
-            <CardContent><img src={images[pair[1]]} className="w-full h-auto" /></CardContent>
-          </Card>
+        .progress-text {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .progress-bg {
+            background: #e5e7eb;
+            border-radius: 9999px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            border-radius: 9999px;
+            transition: width 0.5s ease;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media (min-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .choice-card {
+            background: white;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .choice-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #3b82f6;
+        }
+
+        .choice-image {
+            width: 100%;
+            height: 256px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .choice-card:hover .choice-image {
+            transform: scale(1.05);
+        }
+
+        .choice-name {
+            text-align: center;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .completion-message {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .completion-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #166534;
+            margin-bottom: 8px;
+        }
+
+        .completion-text {
+            color: #15803d;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #f9fafb;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .rankings-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        @media (min-width: 640px) {
+            .rankings-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .rankings-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .rank-number {
+            width: 32px;
+            height: 32px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .ranking-image {
+            width: 64px;
+            height: 64px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 12px;
+        }
+
+        .ranking-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ranking-name {
+            font-weight: 500;
+            color: #1f2937;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ranking-score {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">
+                <span class="trophy">🏆</span>
+                Image Ranking Tournament
+            </h1>
+            <p class="subtitle">Upload images and pick your favorites to create a personalized ranking</p>
         </div>
-      )}
 
-      {images.length > 0 && (
-        <div className="mt-6 relative z-20">
-          <h2 className="text-xl mb-2">Current Rankings</h2>
-          {images
-            .slice()
-            .sort((a, b) => scores[b] - scores[a])
-            .map((img, idx) => (
-              <div key={img} className="mb-2 flex items-center">
-                <span className="mr-2 font-bold">#{idx + 1}</span>
-                <img src={img} className="w-20 h-auto mr-2" />
-                <span>{Math.round(scores[img])}</span>
-              </div>
-            ))}
+        <div id="upload-section">
+            <div class="drag-zone" id="drag-zone">
+                <div class="upload-icon">📁</div>
+                <h3 style="font-size: 1.25rem; font-weight: 600; color: #374151; margin-bottom: 8px;">Drop images here</h3>
+                <p style="color: #6b7280; margin-bottom: 16px;">or click to browse</p>
+                <input type="file" id="file-input" class="file-input" accept="image/*" multiple>
+                <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                    Choose Images
+                </button>
+            </div>
         </div>
-      )}
 
-      {/* Progress bar */}
-      <div className="mt-6 text-center text-lg relative z-20">
-        Comparisons: {comparisons.size} / {totalNeeded} ({Math.round((comparisons.size / totalNeeded) * 100)}%)
-      </div>
+        <div id="main-content" class="hidden">
+            <div class="card">
+                <div class="progress-container">
+                    <span class="progress-text" id="progress-text">Progress: 0 / 0 comparisons</span>
+                    <span class="progress-text" id="progress-percent">0%</span>
+                </div>
+                <div class="progress-bg">
+                    <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="card" id="comparison-section">
+                <h2 style="font-size: 1.25rem; font-weight: 600; text-align: center; margin-bottom: 16px;">Which do you prefer?</h2>
+                <div class="comparison-grid" id="comparison-grid">
+                    <!-- Comparison cards will be inserted here -->
+                </div>
+            </div>
+
+            <div class="completion-message hidden" id="completion-message">
+                <div style="font-size: 3rem; margin-bottom: 16px;">🎉</div>
+                <h2 class="completion-title">Ranking Complete!</h2>
+                <p class="completion-text">Your personalized ranking is ready below.</p>
+            </div>
+
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">Current Rankings</h2>
+                    <div class="button-group">
+                        <button class="btn" onclick="exportResults()">
+                            💾 Export
+                        </button>
+                        <button class="btn" onclick="reset()">
+                            🔄 Reset
+                        </button>
+                    </div>
+                </div>
+                <div class="rankings-grid" id="rankings-grid">
+                    <!-- Rankings will be inserted here -->
+                </div>
+            </div>
+        </div>
     </div>
-  );
-}
+
+    <script>
+        let images = [];
+        let imageNames = {};
+        let pair = [0, 1];
+        let scores = {};
+        let comparisons = new Set();
+        let totalNeeded = 0;
+        let isComplete = false;
+
+        // Drag and drop functionality
+        const dragZone = document.getElementById('drag-zone');
+        const fileInput = document.getElementById('file-input');
+
+        dragZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dragZone.classList.add('drag-over');
+        });
+
+        dragZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dragZone.classList.remove('drag-over');
+        });
+
+        dragZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragZone.classList.remove('drag-over');
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+            if (files.length > 0) {
+                processFiles(files);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            processFiles(files);
+        });
+
+        function processFiles(files) {
+            images = files.map(file => URL.createObjectURL(file));
+            imageNames = {};
+            files.forEach((file, idx) => {
+                imageNames[images[idx]] = file.name.replace(/\.[^/.]+$/, "");
+            });
+
+            pair = [0, 1];
+            scores = {};
+            images.forEach(img => scores[img] = 1000);
+            comparisons = new Set();
+            totalNeeded = Math.round(images.length * Math.log2(images.length) * 1.5);
+            isComplete = false;
+
+            document.getElementById('upload-section').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            
+            createFloatingImages();
+            updateDisplay();
+            showNextPair();
+        }
+
+        function createFloatingImages() {
+            // Remove existing floating images
+            document.querySelectorAll('.floating-image').forEach(img => img.remove());
+            
+            images.forEach((img, idx) => {
+                const floatingImg = document.createElement('img');
+                floatingImg.src = img;
+                floatingImg.className = 'floating-image';
+                floatingImg.style.top = `${10 + (idx * 120) % (window.innerHeight - 200)}px`;
+                floatingImg.style.left = `${10 + (idx * 150) % (window.innerWidth - 200)}px`;
+                floatingImg.style.animationDelay = `${idx * 0.5}s`;
+                document.body.appendChild(floatingImg);
+            });
+        }
+
+        function updateFloatingImages() {
+            document.querySelectorAll('.floating-image').forEach((img, idx) => {
+                const isInPair = idx === pair[0] || idx === pair[1];
+                if (isInPair) {
+                    img.classList.add('comparison-image');
+                } else {
+                    img.classList.remove('comparison-image');
+                }
+            });
+        }
+
+        function choose(winnerIdx) {
+            const [i, j] = pair;
+            const winner = images[winnerIdx];
+            const loser = images[1 - winnerIdx];
+
+            // ELO rating calculation
+            const k = 32;
+            const r1 = 1 / (1 + Math.pow(10, (scores[loser] - scores[winner]) / 400));
+            scores[winner] += k * (1 - r1);
+            scores[loser] += k * (0 - (1 - r1));
+
+            comparisons.add([i, j].sort().join('|'));
+
+            if (comparisons.size >= totalNeeded) {
+                isComplete = true;
+                document.getElementById('comparison-section').classList.add('hidden');
+                document.getElementById('completion-message').classList.remove('hidden');
+            } else {
+                pickPair();
+            }
+
+            updateDisplay();
+        }
+
+        function pickPair() {
+            if (images.length < 2) return;
+
+            // Count appearances for each image
+            const appearanceCount = {};
+            images.forEach((img, idx) => appearanceCount[idx] = 0);
+            
+            for (const key of comparisons) {
+                const [a, b] = key.split('|').map(i => parseInt(i));
+                appearanceCount[a]++;
+                appearanceCount[b]++;
+            }
+
+            // Find the image that has appeared least
+            const sortedByAppearance = Object.entries(appearanceCount)
+                .sort(([,a], [,b]) => a - b)
+                .map(([idx]) => parseInt(idx));
+
+            const a = sortedByAppearance[0];
+            
+            // Find best opponent based on ELO rating similarity
+            const candidates = images
+                .map((img, i) => ({ 
+                    i, 
+                    diff: Math.abs(scores[images[a]] - scores[img]),
+                    appeared: appearanceCount[i]
+                }))
+                .filter(obj => obj.i !== a && !comparisons.has([a, obj.i].sort().join('|')))
+                .sort((x, y) => x.appeared - y.appeared || x.diff - y.diff);
+
+            const b = candidates.length > 0 ? candidates[0].i : (a + 1) % images.length;
+            pair = [a, b];
+            
+            showNextPair();
+        }
+
+        function showNextPair() {
+            const grid = document.getElementById('comparison-grid');
+            grid.innerHTML = '';
+            
+            [0, 1].forEach(idx => {
+                const card = document.createElement('div');
+                card.className = 'choice-card';
+                card.onclick = () => choose(idx);
+                
+                card.innerHTML = `
+                    <img src="${images[pair[idx]]}" alt="${imageNames[images[pair[idx]]]}" class="choice-image">
+                    <p class="choice-name">${imageNames[images[pair[idx]]]}</p>
+                `;
+                
+                grid.appendChild(card);
+            });
+
+            updateFloatingImages();
+        }
+
+        function updateDisplay() {
+            // Update progress
+            const progress = totalNeeded > 0 ? (comparisons.size / totalNeeded) * 100 : 0;
+            document.getElementById('progress-text').textContent = `Progress: ${comparisons.size} / ${totalNeeded} comparisons`;
+            document.getElementById('progress-percent').textContent = `${Math.round(progress)}%`;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+
+            // Update rankings
+            const rankingsGrid = document.getElementById('rankings-grid');
+            rankingsGrid.innerHTML = '';
+            
+            const sortedImages = images
+                .slice()
+                .sort((a, b) => scores[b] - scores[a]);
+
+            sortedImages.forEach((img, idx) => {
+                const item = document.createElement('div');
+                item.className = 'ranking-item';
+                item.innerHTML = `
+                    <div class="rank-number">${idx + 1}</div>
+                    <img src="${img}" alt="${imageNames[img]}" class="ranking-image">
+                    <div class="ranking-info">
+                        <p class="ranking-name">${imageNames[img]}</p>
+                        <p class="ranking-score">Score: ${Math.round(scores[img])}</p>
+                    </div>
+                `;
+                rankingsGrid.appendChild(item);
+            });
+        }
+
+        function exportResults() {
+            const rankings = images
+                .slice()
+                .sort((a, b) => scores[b] - scores[a])
+                .map((img, idx) => ({
+                    rank: idx + 1,
+                    name: imageNames[img],
+                    score: Math.round(scores[img])
+                }));
+            
+            const dataStr = JSON.stringify(rankings, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'rankings.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function reset() {
+            images = [];
+            imageNames = {};
+            pair = [0, 1];
+            scores = {};
+            comparisons = new Set();
+            totalNeeded = 0;
+            isComplete = false;
+
+            // Remove floating images
+            document.querySelectorAll('.floating-image').forEach(img => img.remove());
+
+            document.getElementById('upload-section').classList.remove('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+            document.getElementById('completion-message').classList.add('hidden');
+            document.getElementById('comparison-section').classList.remove('hidden');
+            
+            fileInput.value = '';
+        }
+    </script>
+</body>
+</html>
