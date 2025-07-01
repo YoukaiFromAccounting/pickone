@@ -245,7 +245,7 @@ function pickPair() {
     if (best) {
         pair = best;
         isTiebreaker = checkForTiebreaker(rankings[pair[0]], rankings[pair[1]]);
-        showNextPair();
+        ();
     } else {
         isComplete = true;
         document.getElementById('comparison-section').classList.add('hidden');
@@ -254,33 +254,24 @@ function pickPair() {
     }
 }
 
-function showNextPair() {
-  const grid = document.getElementById('comparison-grid');
-  grid.innerHTML = '';
-
-  [0, 1].forEach(pos => {
-    // build the card
-    const card = document.createElement('div');
-    card.className = 'choice-card';
-    card.onclick = () => choose(pos);
-    card.innerHTML = `
-      <img src="${images[pair[pos]]}" alt="${imageNames[images[pair[pos]]]}" class="choice-image">
-      <p class="choice-name">${imageNames[images[pair[pos]]]}</p>
-    `;
-
-    // create and append the flame container
-    const flameDiv = document.createElement('div');
-    flameDiv.className = 'flame-container';
-    flameDiv.id = `flame-${pair[pos]}`;
-    card.appendChild(flameDiv);
-
-    // ── right here, load your particles
-    tsParticles.load(flameDiv.id, flameConfig);
-
-    grid.appendChild(card);
-  });
-
-  updateFloatingImages();
+function showNextPair() {Add commentMore actions
+    const grid = document.getElementById('comparison-grid');
+    const alert = document.getElementById('tiebreaker-alert');
+    alert.classList.toggle('hidden', !isTiebreaker);
+    grid.classList.toggle('tiebreaker-mode', isTiebreaker);
+    grid.innerHTML = '';
+    [0,1].forEach(pos => {
+        const card = document.createElement('div');
+        card.className = 'choice-card';
+        card.onclick = () => choose(pos);
+        card.innerHTML = `
+            <img src="${images[pair[pos]]}" alt="${imageNames[images[pair[pos]]]}" class="choice-image">
+            <p class="choice-name">${imageNames[images[pair[pos]]] || ''}</p>
+        `;
+        createFlameEffect(card);
+        grid.appendChild(card);
+    });
+    updateFloatingImages();
 }
 
 function updateDisplay() {
