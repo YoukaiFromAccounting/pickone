@@ -159,7 +159,7 @@ body {
     transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     position: relative;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .choice-card:hover {
@@ -204,8 +204,8 @@ body {
     right: 0;
     bottom: 0;
     pointer-events: none;
-    opacity: 1; /* always visible */
-    transition: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .tiebreaker-mode .choice-card:hover .tiebreaker-flames {
@@ -219,15 +219,6 @@ body {
     height: 20px;
     border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
     animation: flicker 0.8s infinite alternate;
-}
-
-.flame-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none; /* clicks go through */
 }
 
 .tiebreaker-alert {
@@ -264,34 +255,6 @@ body {
 @keyframes tiebreaker-pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.02); }
-}
-
-@keyframes flameRise {
-    0% {
-        bottom: 0;
-        opacity: 1;
-        transform: scale(1);
-    }
-    100% {
-        bottom: 120%; /* moves flame above the card */
-        opacity: 0;
-        transform: scale(1.2);
-    }
-}
-
-.flame {
-    position: absolute;
-    background: linear-gradient(45deg, #ff4500, #ff6b35, #ffaa00);
-    width: 8px;
-    height: 20px;
-    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-    animation: flicker 0.8s infinite alternate,  
-               flameRise 1.2s ease-out infinite;
-}
-
-/* make sure the card container lets the flames escape */
-.choice-card {
-    overflow: visible; /* instead of hidden */
 }
 
 /* completion */
