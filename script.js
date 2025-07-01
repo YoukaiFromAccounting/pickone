@@ -24,41 +24,6 @@ function calculateTotalComparisons(n) {
 const dragZone = document.getElementById('drag-zone');
 const fileInput = document.getElementById('file-input');
 
-const flameConfig = {
-  particles: {
-    number: { value: 30, density: { enable: false } },
-    color: { value: ["#ff4500", "#ffae00", "#ffd600"] },
-    shape: { type: "circle" },
-    opacity: {
-      value: 1,
-      animation: {
-        enable: true,
-        speed: 3,
-        minimumValue: 0,
-        startValue: "max",
-        destroy: "min"
-      }
-    },
-    size: {
-      value: { min: 2, max: 5 },
-      animation: {
-        enable: true,
-        speed: 5,
-        minimumValue: 0.5,
-        startValue: "max",
-        destroy: "min"
-      }
-    },
-    move: {
-      enable: true,
-      direction: "top",
-      speed: { min: 2, max: 4 },
-      outModes: { default: "destroy" }
-    }
-  },
-  detectRetina: true
-}
-
 dragZone.addEventListener('dragover', e => {
     e.preventDefault();
     dragZone.classList.add('drag-over');
@@ -245,7 +210,7 @@ function pickPair() {
     if (best) {
         pair = best;
         isTiebreaker = checkForTiebreaker(rankings[pair[0]], rankings[pair[1]]);
-        ();
+        showNextPair();
     } else {
         isComplete = true;
         document.getElementById('comparison-section').classList.add('hidden');
@@ -254,7 +219,7 @@ function pickPair() {
     }
 }
 
-function showNextPair() {Add commentMore actions
+function showNextPair() {
     const grid = document.getElementById('comparison-grid');
     const alert = document.getElementById('tiebreaker-alert');
     alert.classList.toggle('hidden', !isTiebreaker);
@@ -268,7 +233,7 @@ function showNextPair() {Add commentMore actions
             <img src="${images[pair[pos]]}" alt="${imageNames[images[pair[pos]]]}" class="choice-image">
             <p class="choice-name">${imageNames[images[pair[pos]]] || ''}</p>
         `;
-        createFlameEffect(card);
+        if (isTiebreaker) createFlameEffect(card);
         grid.appendChild(card);
     });
     updateFloatingImages();
