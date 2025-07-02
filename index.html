@@ -1,76 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Image Ranking Tournament</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Ranking Tournament</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1 class="title"><span class="trophy">🏆</span>Image Ranking Tournament</h1>
-      <p class="subtitle">Upload images and pick your favorites to create a personalized ranking</p>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">
+                <span class="trophy">🏆</span>
+                Image Ranking Tournament
+            </h1>
+            <p class="subtitle">
+                Upload images and pick your favorites to create a personalized ranking
+            </p>
+        </div>
+        <div id="upload-section">
+            <div class="drag-zone" id="drag-zone">
+                <div class="upload-icon">📁</div>
+                <h3 class="drag-zone-title">Drop images here</h3>
+                <p class="drag-zone-subtitle">or click to browse</p>
+                <input type="file" id="file-input" class="file-input" accept="image/*" multiple>
+                <button class="btn btn-primary" onclick="fileInput.click()">
+                    Choose Images
+                </button>
+            </div>
+        </div>
+        <div id="main-content" class="hidden">
+            <!-- Progress card -->
+            <div class="card">
+                <div class="progress-container">
+                    <span class="progress-text" id="progress-text">Progress: 0 / 0 comparisons</span>
+                    <span class="progress-text" id="progress-percent">0%</span>
+                </div>
+                <div class="progress-bg">
+                    <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+            <!-- Comparison section -->
+            <div class="card" id="comparison-section">
+                <div id="tiebreaker-alert" class="tiebreaker-alert hidden">
+                    🔥 TIEBREAKER ROUND! 🔥<br>
+                    <small>Battle of the champions!</small>
+                </div>
+                <h2 class="section-title">Which do you prefer?</h2>
+                <div class="comparison-grid" id="comparison-grid"></div>
+            </div>
+            <!-- Completion message -->
+            <div class="completion-message hidden" id="completion-message">
+                <div class="trophy">🎉</div>
+                <h2 class="completion-title">Ranking Complete!</h2>
+                <p class="completion-text">Your personalized ranking is ready below.</p>
+            </div>
+            <!-- Results and controls -->
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">Current Rankings</h2>
+                    <div class="button-group">
+                        <button class="btn" onclick="exportResults()">💾 Export</button>
+                        <button class="btn" onclick="reset()">🔄 Reset</button>
+                    </div>
+                </div>
+                <div class="rankings-grid" id="rankings-grid"></div>
+            </div>
+        </div>
     </div>
-    <div id="upload-section">
-      <div class="mode-selector">
-        <h3 class="mode-title">Choose Tournament Style</h3>
-        <div class="mode-options">
-          <label class="mode-option selected" for="conservative">
-            <input type="radio" id="conservative" name="tournament-mode" value="conservative" checked>
-            <div class="mode-name">🛡️ Conservative</div>
-            <div class="mode-description">More comparisons for maximum accuracy</div>
-            <div class="mode-stats" id="conservative-stats"></div>
-          </label>
-          <label class="mode-option" for="swiss">
-            <input type="radio" id="swiss" name="tournament-mode" value="swiss">
-            <div class="mode-name">⚡ Swiss Style</div>
-            <div class="mode-description">Fewer comparisons, good accuracy</div>
-            <div class="mode-stats" id="swiss-stats"></div>
-          </label>
-        </div>
-      </div>
-      <div class="drag-zone" id="drag-zone">
-        <div class="upload-icon">📁</div>
-        <h3 class="drag-zone-title">Drop images here</h3>
-        <p class="drag-zone-subtitle">or click to browse</p>
-        <input type="file" id="file-input" class="file-input" accept="image/*" multiple>
-        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Choose Images</button>
-      </div>
-    </div>
-    <div id="main-content" class="hidden">
-      <div class="card">
-        <div class="progress-container">
-          <span class="progress-text" id="progress-text">Progress: 0 / 0 comparisons</span>
-          <span class="progress-text" id="progress-percent">0%</span>
-        </div>
-        <div class="progress-bg"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
-      </div>
-      <div class="card" id="comparison-section">
-        <div id="tiebreaker-alert" class="tiebreaker-alert hidden">
-          🔥 TIEBREAKER ROUND! 🔥<br><small>Battle of the champions!</small>
-        </div>
-        <h2 class="section-title">Which do you prefer?</h2>
-        <div class="comparison-grid" id="comparison-grid"></div>
-      </div>
-      <div class="completion-message hidden" id="completion-message">
-        <div class="trophy">🎉</div>
-        <h2 class="completion-title">Ranking Complete!</h2>
-        <p class="completion-text">Your personalized ranking is ready below.</p>
-      </div>
-      <div class="card">
-        <div class="section-header">
-          <h2 class="section-title">Current Rankings</h2>
-          <div class="button-group">
-            <button class="btn" onclick="exportResults()">💾 Export</button>
-            <button class="btn" onclick="reset()">🔄 Reset</button>
-          </div>
-        </div>
-        <div class="rankings-grid" id="rankings-grid"></div>
-      </div>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
+    <script defer src="script.js"></script>
 </body>
 </html>
