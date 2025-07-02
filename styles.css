@@ -63,76 +63,6 @@ body {
     font-size: 1.125rem;
 }
 
-/* tournament mode selector */
-.mode-selector {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.mode-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #1f2937;
-    margin-bottom: 16px;
-    text-align: center;
-}
-
-.mode-options {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-}
-
-@media (min-width: 768px) {
-    .mode-options {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-.mode-option {
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: white;
-}
-
-.mode-option:hover {
-    border-color: #3b82f6;
-    background: #f8fafc;
-}
-
-.mode-option.selected {
-    border-color: #3b82f6;
-    background: #eff6ff;
-}
-
-.mode-option input[type="radio"] {
-    display: none;
-}
-
-.mode-name {
-    font-weight: 600;
-    color: #1f2937;
-    margin-bottom: 4px;
-}
-
-.mode-description {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-bottom: 8px;
-}
-
-.mode-stats {
-    font-size: 0.75rem;
-    color: #059669;
-    font-weight: 500;
-}
-
 /* upload zone */
 .drag-zone {
     border: 3px dashed #cbd5e1;
@@ -156,6 +86,7 @@ body {
     margin-bottom: 16px;
 }
 
+/* moved inline text styles into classes */
 .drag-zone-title {
     font-size: 1.25rem;
     font-weight: 600;
@@ -244,7 +175,7 @@ body {
     border-radius: 8px;
     margin-bottom: 8px;
     transition: transform 0.3s ease;
-    background: #f8fafc;
+    background: #f8f9fa;
 }
 
 .choice-card:hover .choice-image {
@@ -302,12 +233,16 @@ body {
 }
 
 @keyframes pulse-glow {
-    0%,100% { box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 20px rgba(255, 69, 0, 0.3); }
-    50% { box-shadow: 0 8px 25px rgba(0,0,0,0.15), 0 0 40px rgba(255, 69, 0, 0.6); }
+    0%, 100% {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 20px rgba(255, 69, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15), 0 0 40px rgba(255, 69, 0, 0.6);
+    }
 }
 
 @keyframes flame-dance {
-    0%,100% { transform: translateY(-4px) scale(1.02); }
+    0%, 100% { transform: translateY(-4px) scale(1.02); }
     50% { transform: translateY(-6px) scale(1.05); }
 }
 
@@ -318,7 +253,7 @@ body {
 }
 
 @keyframes tiebreaker-pulse {
-    0%,100% { transform: scale(1); }
+    0%, 100% { transform: scale(1); }
     50% { transform: scale(1.02); }
 }
 
